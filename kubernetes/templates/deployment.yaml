@@ -2,23 +2,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Chart.Name }}-{{ .Values.postgresql.name }}
+  name: {{ .Release.Name }}-postgresql
+  labels:
+    app: {{ .Release.Name }}-postgresql
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ .Chart.Name }}-{{ .Values.postgresql.name }}
+      app: {{ .Release.Name }}-postgresql
   template:
     metadata:
       labels:
-        app: {{ .Chart.Name }}-{{ .Values.postgresql.name }}
+        app: {{ .Release.Name }}-postgresql
     spec:
       containers:
-        - name: {{ .Chart.Name }}-postgres
+        - name: postgresql
           image: {{ .Values.postgresql.image }}
           env:
             - name: POSTGRES_PASSWORD
-              value: {{ .Values.postgresql.env.POSTGRES_PASSWORD }}
+              valueFrom:
+                secretKeyRef:
+                  name: netbox-db-secret
+                  key: postgresPassword
             - name: POSTGRES_DB
               value: {{ .Values.postgresql.env.POSTGRES_DB }}
             - name: POSTGRES_USER
@@ -32,25 +37,26 @@ spec:
             claimName: netbox-pgdata-pvc
 
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Chart.Name }}-{{ .Values.redis.name }}
+  name: {{ .Release.Name }}-redis
+  labels:
+    app: {{ .Release.Name }}-redis
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ .Chart.Name }}-{{ .Values.redis.name }}
+      app: {{ .Release.Name }}-redis
   template:
     metadata:
       labels:
-        app: {{ .Chart.Name }}-{{ .Values.redis.name }}
+        app: {{ .Release.Name }}-redis
     spec:
       securityContext:
         fsGroup: 1000
       containers:
-        - name: {{ .Chart.Name }}-redis
+        - name: redis
           image: {{ .Values.redis.image }}
           command: ["redis-server"]
           volumeMounts:
@@ -62,20 +68,21 @@ spec:
             claimName: netbox-redisdata-pvc
 
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Chart.Name }}-netbox
+  name: {{ .Release.Name }}-netbox
+  labels:
+    app: {{ .Release.Name }}-netbox
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ .Chart.Name }}-netbox
+      app: {{ .Release.Name }}-netbox
   template:
     metadata:
       labels:
-        app: {{ .Chart.Name }}-netbox
+        app: {{ .Release.Name }}-netbox
     spec:
       containers:
         - name: netbox
@@ -90,7 +97,10 @@ spec:
             - name: SUPERUSER_EMAIL
               value: {{ .Values.netbox.env.SUPERUSER_EMAIL }}
             - name: SUPERUSER_PASSWORD
-              value: {{ .Values.netbox.env.SUPERUSER_PASSWORD }}
+              valueFrom:
+                secretKeyRef:
+                  name: netbox-secret
+                  key: superuserPassword
             - name: ALLOWED_HOST
               value: {{ .Values.netbox.env.ALLOWED_HOST }}
             - name: DB_NAME
@@ -98,7 +108,10 @@ spec:
             - name: DB_USER
               value: {{ .Values.netbox.env.DB_USER }}
             - name: DB_PASSWORD
-              value: {{ .Values.netbox.env.DB_PASSWORD }}
+              valueFrom:
+                secretKeyRef:
+                  name: netbox-db-secret
+                  key: postgresPassword
             - name: DB_HOST
               value: {{ .Values.netbox.env.DB_HOST }}
             - name: DB_PORT
