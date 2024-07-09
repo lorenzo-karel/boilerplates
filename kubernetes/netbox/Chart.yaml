@@ -1,0 +1,23 @@
+# Chart.yaml
+apiVersion: v2
+name: netbox
+description: A Helm chart for deploying Netbox with PostgreSQL and Redis
+type: application
+version: 0.1.0
+appVersion: "2024.1.0"  
+
+maintainers:
+  - name: Lorenzo Karel
+    email: lorenzokarel@google.com
+
+keywords:
+  - netbox
+  - helm
+  - kubernetes
+  - postgresql
+  - redis
+
+sources:
+  - https://github.com/netbox-community/netbox
+
+icon: https://raw.githubusercontent.com/netbox-community/netbox/develop/docs/media/netbox_logo.png

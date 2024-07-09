@@ -1,0 +1,129 @@
+# templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}-{{ .Values.postgresql.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}-{{ .Values.postgresql.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}-{{ .Values.postgresql.name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}-postgres
+          image: {{ .Values.postgresql.image }}
+          env:
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.postgresql.env.POSTGRES_PASSWORD }}
+            - name: POSTGRES_DB
+              value: {{ .Values.postgresql.env.POSTGRES_DB }}
+            - name: POSTGRES_USER
+              value: {{ .Values.postgresql.env.POSTGRES_USER }}
+          volumeMounts:
+            - name: pgdata
+              mountPath: {{ .Values.postgresql.volumes.mountPath }}
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: netbox-pgdata-pvc
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}-{{ .Values.redis.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}-{{ .Values.redis.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}-{{ .Values.redis.name }}
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: {{ .Chart.Name }}-redis
+          image: {{ .Values.redis.image }}
+          command: ["redis-server"]
+          volumeMounts:
+            - name: redisdata
+              mountPath: {{ .Values.redis.volumes.mountPath }}
+      volumes:
+        - name: redisdata
+          persistentVolumeClaim:
+            claimName: netbox-redisdata-pvc
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}-netbox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}-netbox
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}-netbox
+    spec:
+      containers:
+        - name: netbox
+          image: {{ .Values.netbox.image }}
+          env:
+            - name: PUID
+              value: {{ .Values.netbox.env.PUID }}
+            - name: PGID
+              value: {{ .Values.netbox.env.PGID }}
+            - name: TZ
+              value: {{ .Values.netbox.env.TZ }}
+            - name: SUPERUSER_EMAIL
+              value: {{ .Values.netbox.env.SUPERUSER_EMAIL }}
+            - name: SUPERUSER_PASSWORD
+              value: {{ .Values.netbox.env.SUPERUSER_PASSWORD }}
+            - name: ALLOWED_HOST
+              value: {{ .Values.netbox.env.ALLOWED_HOST }}
+            - name: DB_NAME
+              value: {{ .Values.netbox.env.DB_NAME }}
+            - name: DB_USER
+              value: {{ .Values.netbox.env.DB_USER }}
+            - name: DB_PASSWORD
+              value: {{ .Values.netbox.env.DB_PASSWORD }}
+            - name: DB_HOST
+              value: {{ .Values.netbox.env.DB_HOST }}
+            - name: DB_PORT
+              value: {{ .Values.netbox.env.DB_PORT }}
+            - name: REDIS_HOST
+              value: {{ .Values.netbox.env.REDIS_HOST }}
+            - name: REDIS_PORT
+              value: {{ .Values.netbox.env.REDIS_PORT }}
+            - name: REDIS_DB_TASK
+              value: {{ .Values.netbox.env.REDIS_DB_TASK }}
+            - name: REDIS_DB_CACHE
+              value: {{ .Values.netbox.env.REDIS_DB_CACHE }}
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: netbox-config
+              mountPath: {{ .Values.netbox.volumes.mountPath }}
+      volumes:
+        - name: netbox-config
+          persistentVolumeClaim:
+            claimName: netbox-config-pvc
+      initContainers:
+        - name: wait-for-db
+          image: busybox
+          command: ['sh', '-c', 'until nc -z -v -w30 netbox-db 5432; do echo waiting for database; sleep 5; done;']
+        - name: wait-for-redis
+          image: busybox
+          command: ['sh', '-c', 'until nc -z -v -w30 netbox-redis 6379; do echo waiting for redis; sleep 5; done;']
