@@ -35,7 +35,6 @@ spec:
         - name: pgdata
           persistentVolumeClaim:
             claimName: netbox-pgdata-pvc
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -66,7 +65,6 @@ spec:
         - name: redisdata
           persistentVolumeClaim:
             claimName: netbox-redisdata-pvc
-
 ---
 apiVersion: apps/v1
 kind: Deployment
